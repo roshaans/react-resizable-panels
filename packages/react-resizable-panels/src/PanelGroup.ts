@@ -97,6 +97,7 @@ export type PanelGroupProps = {
   disablePointerEventsDuringResize?: boolean;
   id?: string | null;
   onLayout?: PanelGroupOnLayout;
+  disablePersistance: boolean;
   storage?: PanelGroupStorage;
   style?: CSSProperties;
   tagName?: ElementType;
@@ -115,12 +116,16 @@ function PanelGroupWithForwardedRef({
   forwardedRef,
   id: idFromProps = null,
   onLayout,
-  storage = defaultStorage,
+  disablePersistance = false,
+  storage,
   style: styleFromProps = {},
   tagName: Type = "div",
 }: PanelGroupProps & {
   forwardedRef: ForwardedRef<ImperativePanelGroupHandle>;
 }) {
+  if (disablePersistance == false) {
+    storage = defaultStorage;
+  }
   const groupId = useUniqueId(idFromProps);
 
   const [activeHandleId, setActiveHandleId] = useState<string | null>(null);
@@ -229,9 +234,11 @@ function PanelGroupWithForwardedRef({
     // If this panel has been configured to persist sizing information,
     // default size should be restored from local storage if possible.
     let defaultSizes: number[] | null = null;
-    if (autoSaveId) {
-      const panelsArray = panelsMapToSortedArray(panels);
-      defaultSizes = loadPanelLayout(autoSaveId, panelsArray, storage);
+    if (disablePersistance == false && storage != null) {
+      if (autoSaveId) {
+        const panelsArray = panelsMapToSortedArray(panels);
+        defaultSizes = loadPanelLayout(autoSaveId, panelsArray, storage);
+      }
     }
 
     if (defaultSizes != null) {
@@ -281,6 +288,9 @@ function PanelGroupWithForwardedRef({
   }, [autoSaveId, panels, storage]);
 
   useEffect(() => {
+    if (disablePersistance == true && storage != null) {
+      return;
+    }
     // If this panel has been configured to persist sizing information, save sizes to local storage.
     if (autoSaveId) {
       if (sizes.length === 0 || sizes.length !== panels.size) {
